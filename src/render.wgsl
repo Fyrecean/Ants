@@ -8,14 +8,12 @@ struct VertexOut {
   @builtin(position) position : vec4f,
   @location(0) color : vec4f,
   @location(1) uv : vec2f,
-  @location(2) shape: f32,
 }
 
 @vertex
 fn vertex_main(@location(0) position: vec2f,
                @location(1) color: vec4f,
                 @location(2) uv : vec2f,
-                @location(3) shape: f32,
 
 ) -> VertexOut
 {
@@ -23,7 +21,6 @@ fn vertex_main(@location(0) position: vec2f,
   output.position = uniforms.viewMatrix * vec4(position, 0., 1.);
   output.color = color;
   output.uv = uv;
-  output.shape = shape;
   return output;
 }
 
@@ -36,14 +33,6 @@ fn fragment_main(fragData: VertexOut) -> @location(0) vec4f
 {
   let environmentSample = textureSample(environmentTexture, mySampler, fragData.uv);
   let sample = textureSample(dirtTexture, mySampler, fragData.uv);
-  // Handle debug circles
-  if (fragData.shape == 1) {
-    let outOfCircle = fragData.shape == 1. && length(fragData.uv - vec2(.5)) >= .5;
-    if (outOfCircle) {
-      discard;
-    }
-    return fragData.color;
-  }
   // Otherwise, rectangle texture
   if (environmentSample.x > 0.) {
     return sample;

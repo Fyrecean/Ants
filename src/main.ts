@@ -1,90 +1,86 @@
-import { black, blue, CartControl, Drag, GlobalGravity, PhysObject, Pivot, red, Shapes, simulate, white } from "./physics";
 import { requestRenderer } from "./renderer";
 import { mat4, vec2, Vec2, vec4, Vec4, vec4d } from "wgpu-matrix";
 
-const objects: PhysObject[] = [];
+// Some color constants
+const white = vec4.fromValues(1, 1, 1, 1);
+const red = vec4.fromValues(1, 0, 0, 1);
+const blue = vec4.fromValues(0, 0, 1, 1);
+const green = vec4.fromValues(0, 1, 0, 1);
+const black = vec4.fromValues(0, 0, 0, 1);
 
-function createCircle(x: number, y: number, radius: number, color: Vec4): PhysObject {
-    const object: PhysObject = {
-        mass: 1,
+export interface Shape2D {
+    position: Vec2,
+    vertices: {
+        position: Vec4
+        color: Vec4
+        uv: Vec4
+    }[],
+    indices: number[]
+}
+
+const objects: Shape2D[] = [];
+
+function createCircle(x: number, y: number, radius: number, color: Vec4): Shape2D {
+    const object: Shape2D = {
         position: vec2.fromValues(x, y),
-        velocity: vec2.zero(),
-        forces: [],
-        constraints: [],
-        shape: {
-            vertices: [
-                {
-                    position: vec4.fromValues(-radius/2, -radius/2, 0, 1),
-                    color: color,
-                    shape: Shapes.circle,
-                    uv: vec2.fromValues(0, 1)
-                },
-                {
-                    position: vec4.fromValues(radius/2, -radius/2, 0, 1),
-                    color: color,
-                    shape: Shapes.circle,
-                    uv: vec2.fromValues(1, 1)
-                },
-                {
-                    position: vec4.fromValues(-radius/2, radius/2, 0, 1),
-                    color: color,
-                    shape: Shapes.circle,
-                    uv: vec2.fromValues(0, 0)
-                },
-                {
-                    position: vec4.fromValues(radius/2, radius/2, 0, 1),
-                    color: color,
-                    shape: Shapes.circle,
-                    uv: vec2.fromValues(1, 0)
-                },
-            ],
-            indices: [
-                0, 2, 1, 1, 2, 3
-            ]
-        }
+        vertices: [
+            {
+                position: vec4.fromValues(-radius/2, -radius/2, 0, 1),
+                color: color,
+                uv: vec2.fromValues(0, 1)
+            },
+            {
+                position: vec4.fromValues(radius/2, -radius/2, 0, 1),
+                color: color,
+                uv: vec2.fromValues(1, 1)
+            },
+            {
+                position: vec4.fromValues(-radius/2, radius/2, 0, 1),
+                color: color,
+                uv: vec2.fromValues(0, 0)
+            },
+            {
+                position: vec4.fromValues(radius/2, radius/2, 0, 1),
+                color: color,
+                uv: vec2.fromValues(1, 0)
+            },
+        ],
+        indices: [
+            0, 2, 1, 1, 2, 3
+        ]
     };
     objects.push(object);
     return object;
 }
 
-function createRect(x: number, y: number, width: number, height: number, color: Vec4): PhysObject {
-    const object: PhysObject = {
-        mass: 2,
-        position: vec2.fromValues(x, y),
-        velocity: vec2.zero(),
-        forces: [],
-        constraints: [],
-        shape: {
+function createRect(x: number, y: number, width: number, height: number, color: Vec4): Shape2D {
+    const object: Shape2D = {
+            position: vec2.fromValues(x, y),
             vertices: [
                 {
                     position: vec4.fromValues(-width/2, -height/2, 0, 1),
                     color: color,
-                    shape: Shapes.rect,
                     uv: vec2.fromValues(0, 1)
                 },
                 {
                     position: vec4.fromValues(width/2, -height/2, 0, 1),
                     color: color,
-                    shape: Shapes.rect,
                     uv: vec2.fromValues(1, 1)
                 },
                 {
                     position: vec4.fromValues(-width/2, height/2, 0, 1),
                     color: color,
-                    shape: Shapes.rect,
                     uv: vec2.fromValues(0, 0)
                 },
                 {
                     position: vec4.fromValues(width/2, height/2, 0, 1),
                     color: color,
-                    shape: Shapes.rect,
                     uv: vec2.fromValues(1, 0)
                 },
             ],
             indices: [
                 0, 1, 2, 1, 2, 3
             ]
-        }
     };
     objects.push(object);
     return object;
@@ -94,17 +90,19 @@ const viewMatrix = mat4.identity();
 let height = 0;
 let width = 0;
 
-function absoluteToNormalized(x: number, y: number) {
+function absoluteToNormalized(x: number, y: number): [number, number] {
     const xNorm = (x / (width) - .5) * 2;
     const yNorm = (-y / (height) + .5) * 2;
-    const vCanvas = vec4.fromValues(xNorm, yNorm, 0, 1);
-    const vWorld = vec4.transformMat4(vCanvas,mat4.inverse(viewMatrix));
-    return [vWorld[0],vWorld[1]];
+    const canvasVector = vec4.fromValues(xNorm, yNorm, 0, 1);
+    const worldVector = vec4.transformMat4(canvasVector,mat4.inverse(viewMatrix));
+    return [worldVector[0], worldVector[1]];
 }
 
-function deltaToNormalized(x: number, y: number) {
-    const ret = [x / width * (2 / viewMatrix[0]), -y / height * (2 / viewMatrix[5]) ];
-    return ret;
+function deltaToNormalized(x: number, y: number): [number, number] {
+    return [
+        x / width * (2 / viewMatrix[0]), 
+        -y / height * (2 / viewMatrix[5])
+    ];
 }
 
 async function start() {
@@ -154,8 +152,6 @@ async function start() {
     const frame = (time: DOMHighResTimeStamp) => {
         const deltaTime = (time - prevTime) / 1000;
         prevTime = time;
-
-        simulate(objects, deltaTime);
         
         renderer.addVertexBuffer(objects);
         renderer.viewMatrix = viewMatrix;

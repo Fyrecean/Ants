@@ -1,8 +1,8 @@
 import { mat4, Mat4, vec2, vec4 } from "wgpu-matrix";
-import { PhysObject } from "./physics";
 import shaderCode from "./render.wgsl";
+import { Shape2D } from "main";
 
-const VERTEX_STRIDE = 9;
+const VERTEX_STRIDE = 8;
 
 type TextureHandle = number;
 
@@ -115,11 +115,6 @@ export class Renderer {
                   offset: 24,
                   format: "float32x2",
                 },
-                {
-                  shaderLocation: 3, // shape
-                  offset: 32,
-                  format: "float32",
-                },
               ],
               arrayStride: VERTEX_STRIDE * 4,
               stepMode: "vertex",
@@ -154,15 +149,15 @@ export class Renderer {
           };
     }
 
-    addVertexBuffer = (objectList: PhysObject[]) => {
+    addVertexBuffer = (objectList: Shape2D[]) => {
         let vertexList: number[] = [];
         let indexList: number[] = [];
         objectList.forEach(obj => {
             let startIndex = vertexList.length / VERTEX_STRIDE;
-            vertexList.push(...obj.shape.vertices.flatMap(vertex => {
-                return [...vec2.add(vertex.position, obj.position), ...vertex.color, ...vertex.uv, vertex.shape];
+            vertexList.push(...obj.vertices.flatMap(vertex => {
+                return [...vec2.add(vertex.position, obj.position), ...vertex.color, ...vertex.uv];
             }));
-            indexList.push(...obj.shape.indices.map(index => index + startIndex));
+            indexList.push(...obj.indices.map(index => index + startIndex));
         });
 
         const vertices = new Float32Array(vertexList);
