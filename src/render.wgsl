@@ -1,5 +1,6 @@
 struct Uniforms {
   viewMatrix : mat4x4f,
+  ants: array<Ant, 2>,
 }
 
 @group(0) @binding(0) var<uniform> uniforms : Uniforms;
@@ -11,7 +12,7 @@ struct VertexOut {
 }
 
 @vertex
-fn vertex_main(@location(0) position: vec2f,
+fn vertex_environment(@location(0) position: vec2f,
                @location(1) color: vec4f,
                 @location(2) uv : vec2f,
 
@@ -29,7 +30,7 @@ fn vertex_main(@location(0) position: vec2f,
 @group(1) @binding(2) var dirtTexture: texture_2d<f32>;
 
 @fragment
-fn fragment_main(fragData: VertexOut) -> @location(0) vec4f
+fn fragment_environment(fragData: VertexOut) -> @location(0) vec4f
 {
   let environmentSample = textureSample(environmentTexture, mySampler, fragData.uv);
   let sample = textureSample(dirtTexture, mySampler, fragData.uv);
@@ -42,4 +43,22 @@ fn fragment_main(fragData: VertexOut) -> @location(0) vec4f
     discard;
   }
   return vec4(1.);
+}
+
+@vertex
+fn vertex_ant(
+  @builtin(instance_index) instance_index: u32,
+  @location(0) position: vec2f,
+  @location(1) uv: vec2f,
+) -> VertexOut {
+  var output: VertexOut;
+  output.position = uniforms.viewMatrix * vec4(uniforms.ants[instance_index].position + (position * .005), 0., 1.);
+  output.color = vec4(hsv2rgb(vec3(uniforms.ants[instance_index].hue, 1., 1.)), 1.);
+  output.uv = uv;
+  return output;
+}
+
+@fragment
+fn fragment_ant(fragData: VertexOut) -> @location(0) vec4f {
+  return fragData.color;
 }

@@ -20,39 +20,6 @@ export interface Shape2D {
 
 const objects: Shape2D[] = [];
 
-function createCircle(x: number, y: number, radius: number, color: Vec4): Shape2D {
-    const object: Shape2D = {
-        position: vec2.fromValues(x, y),
-        vertices: [
-            {
-                position: vec4.fromValues(-radius/2, -radius/2, 0, 1),
-                color: color,
-                uv: vec2.fromValues(0, 1)
-            },
-            {
-                position: vec4.fromValues(radius/2, -radius/2, 0, 1),
-                color: color,
-                uv: vec2.fromValues(1, 1)
-            },
-            {
-                position: vec4.fromValues(-radius/2, radius/2, 0, 1),
-                color: color,
-                uv: vec2.fromValues(0, 0)
-            },
-            {
-                position: vec4.fromValues(radius/2, radius/2, 0, 1),
-                color: color,
-                uv: vec2.fromValues(1, 0)
-            },
-        ],
-        indices: [
-            0, 2, 1, 1, 2, 3
-        ]
-    };
-    objects.push(object);
-    return object;
-}
-
 function createRect(x: number, y: number, width: number, height: number, color: Vec4): Shape2D {
     const object: Shape2D = {
             position: vec2.fromValues(x, y),
@@ -112,7 +79,7 @@ async function start() {
     canvas.addEventListener("mousewheel", (ev: WheelEvent) => {
         ev.preventDefault();
         if (ev.ctrlKey) {
-            if (!(ev.deltaY > 0 && viewMatrix[0] <= .8) && !(ev.deltaY < 0 && viewMatrix[0] >= 4)) {
+            if (!(ev.deltaY > 0 && viewMatrix[0] <= .8) && !(ev.deltaY < 0 && viewMatrix[0] >= 8)) {
                 let [x, y] = absoluteToNormalized(ev.offsetX, ev.offsetY);
                 const mouseToOrigin = mat4.translation(vec4.fromValues(x, y, 0, 0));
                 const deltaZoom = ev.deltaY / 60;
@@ -143,23 +110,20 @@ async function start() {
     createRect(0, 0, 2, 2, red);
     
     renderer.addVertexBuffer(objects);
-    renderer.viewMatrix = viewMatrix;
-    renderer.render();
-
-    let paused = true;
+    let paused = false;
     let frameHandle = 0;
     let prevTime = performance.now();
     const frame = (time: DOMHighResTimeStamp) => {
         const deltaTime = (time - prevTime) / 1000;
         prevTime = time;
         
-        renderer.addVertexBuffer(objects);
         renderer.viewMatrix = viewMatrix;
         renderer.render();
         if (!paused) {
             frameHandle = requestAnimationFrame(frame);
         }
     }
+    frameHandle = requestAnimationFrame(frame);
 
     const pauseButton = document.getElementById("pause");
     pauseButton.addEventListener("click", () => {
